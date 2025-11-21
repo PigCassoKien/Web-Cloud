@@ -1,0 +1,113 @@
+version: '3.9'
+
+services:
+  # ==============================================================
+  # 1. Queue Service (port 8081)
+  # ==============================================================
+  queue-service:
+    build:
+      context: ./service-queue-aws          # thư mục chứa Dockerfile queue
+      dockerfile: Dockerfile
+    image: 864723396935.dkr.ecr.ap-southeast-1.amazonaws.com/smartqueue-queue-service:latest
+    container_name: queue-service
+    ports:
+      - "8081:8081"                         # chỉ expose ra ngoài nếu cần debug
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - AWS_REGION=ap-southeast-1
+      # Không set DYNAMODB_ENDPOINT → tự động dùng AWS thật
+      - ETA_SERVICE_URL=http://eta-service:8082
+      - INTERNAL_API_KEY=change-me-to-a-very-strong-secret-key-2025
+      - SERVER_PORT=8081
+    networks:
+      - smartqueue-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 512M
+
+  # ==============================================================
+  # 2. ETA Service (port 8082)
+  # ==============================================================
+  eta-service:
+    build:
+      context: ./service-eta-aws            # thư mục chứa Dockerfile eta
+      dockerfile: Dockerfile
+    image: 864723396935.dkr.ecr.ap-southeast-1.amazonaws.com/smartqueue-eta-service:latest
+    container_name: eta-service
+    ports:
+      - "8082:8082"
+      - "8080:8080"   
+    network_mode: host                      
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - AWS_REGION=ap-southeast-1
+      - QUEUE_SERVICE_URL=http://queue-service:8081
+      - SNS_TOPIC_NAME=SmartQueueNotifications
+      - SES_FROM_EMAIL=kien0610minh@gmail.com
+      - SERVER_PORT=8082
+    depends_on:
+      queue-service:
+        condition: service_healthy
+    networks:
+      - smartqueue-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 512M
+
+  # ==============================================================
+  # 3. Frontend (Nginx + Vite/React/Vue build)
+  # ==============================================================
+  frontend:
+    build:
+      context: ./frontend                    # thư mục chứa Dockerfile frontend
+      dockerfile: Dockerfile
+      args:
+        # ĐỂ TRỎ ĐÚNG VÀO API TRÊN PRODUCTION
+        VITE_API_BASE_URL: "/api"
+    image: 864723396935.dkr.ecr.ap-southeast-1.amazonaws.com/smartqueue-frontend:latest
+    container_name: frontend
+    ports:
+      - "80:80"                              # truy cập trực tiếp qua http://EC2_PUBLIC_IP
+      # - "443:443"                          # bật khi bạn thêm SSL sau
+    depends_on:
+      queue-service:
+        condition: service_healthy
+      eta-service:
+        condition: service_healthy
+    networks:
+      - smartqueue-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+# ==============================================================
+# Network chung (bắt buộc để frontend resolve được queue & eta)
+# ==============================================================
+networks:
+  smartqueue-net:
+    driver: bridge
+    name: smartqueue-net

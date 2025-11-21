@@ -1,0 +1,37 @@
+.App {
+  text-align: center;
+}
+
+.login-container, .register-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #1890ff 0%, #722ed1 100%);
+}
+
+.dashboard-header {
+  background: white;
+  padding: 0 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.dashboard-content {
+  padding: 24px;
+  background: #f0f2f5;
+  min-height: calc(100vh - 64px);
+}
+
+.queue-card {
+  margin-bottom: 16px;
+}
+
+.queue-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ticket-modal .ant-modal-body {
+  padding: 24px;
+}
