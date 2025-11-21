@@ -41,6 +41,7 @@ smartqueue/
 ## Chức năng từng Service
 ### 1. Smartqueue-queue-service (Port 8081)
 
+- Khách hàng thực hiện đăng ký và đăng nhập vào hệ thống.
 - Quản lý hàng đợi theo thời gian thực và phát hành ticket
 - Hỗ trợ tham gia hàng đợi (POST /api/queues/{id}/join)
 - Kiểm tra trạng thái & vị trí trong hàng đợi (GET /api/queues/{id}/status)
