@@ -85,7 +85,7 @@ smartqueue/
 
 ```bash
 
-git clone https://github.com/yourname/smartqueue.git
+git clone https://github.com/PigCassoKien/Web-Cloud
 cd smartqueue
 
 # Service A - AWS Queue Manager
